@@ -15,7 +15,7 @@ def load_files(path):
     files = glob.glob(path+'/**/*', recursive=True)
     for file in files:
         try:
-            with open(file,encoding='utf-8') as f:
+            with open(file, encoding='utf-8') as f:
                 docs.append(f.read().splitlines())
         except:
             pass
@@ -36,6 +36,9 @@ def text_preprocess(files, stopwords):
         ## Usuń entity
         ## np. <Entity name="Tomasz Sekielski" type="person" category="dziennikarze">Tomasz Sekielski</Entity>
         sentence = wyjeb_to_entity(sentence)
+
+        ## Usuń cyferki
+        sentence = sentence.translate(str.maketrans('', '', string.digits))
 
         ## Usuń znaki interpunkcyjne
         sentence = sentence.translate(str.maketrans('', '', string.punctuation))
@@ -71,11 +74,13 @@ def save_model(model):
             metafile.write(word+'\n')
 
 if __name__ == "__main__":
+    ## można zrobić yield
     docs = load_files(PATH)
+    print('data loaded')
+    ## jest mocno nieoptymalnie
     text = text_preprocess(docs, STOPWORDS)
-
+    print('text preprocessed')
     ## train word2vec
     model = make_word2vec(text)
+    print('model trained')
     save_model(model)
-
-
