@@ -22,7 +22,7 @@ def load_files(path):
             pass
     return docs
 
-def wyjeb_to_entity(sentence):
+def remove_entity(sentence):
     return re.sub('\<(.*?)\>','', sentence) 
 
 def extract_lemm(morf):
@@ -80,19 +80,19 @@ def extract_neighbor_words(sentences, before=3, after=3, stopwords=STOPWORDS, ke
     ## http://morfeusz.sgjp.pl/download/
     morf = morfeusz2.Morfeusz()
     for sentence in sentences:
-        ## Usuń entity
-        ## np. <Entity name="Tomasz Sekielski" type="person" category="dziennikarze">Tomasz Sekielski</Entity>
-        ## zostanie Tomasz Sekielski
-
         person = re.findall('">(.*?)</',sentence)[0].split()
-        sentence = wyjeb_to_entity(sentence)
+        
+        ## Remove entity
+        ## <Entity name="Tomasz Sekielski" type="person" category="dziennikarze">Tomasz Sekielski</Entity>
+        ## will result as Tomasz Sekielski
+        sentence = remove_entity(sentence)
 
         ## Remove digits
         sentence = sentence.translate(str.maketrans('', '', string.digits))
 
         ## Remove punctuation marks
         sentence = sentence.translate(str.maketrans('', '', string.punctuation))
-        print(sentence)
+
         ## Remove stopwords
         sentence = [word for word in sentence.split() if word not in stopwords and len(word)>1]
 
@@ -104,14 +104,14 @@ def extract_neighbor_words(sentences, before=3, after=3, stopwords=STOPWORDS, ke
         if keep_person:
             words_before_after = words_before_after + person
 
-        ## Lematyzacja (opcjonalna wegług prowadzącej)
-        ## nie wiem czy jest funkcja, ktora zwraca sam lemat, wiec trzeba robic takie czary.
-        ## Czasami zwraca różne wyniki np. dla slowa zamek zwraca zamek:s1, zamek:s2
+        ## Lemmatisation (not obligatory)
+        ## Sometimes returns many different results for specific words.
+        ## For exmaple for zamek returns zamek:s1, zamek:s2
         ## Try: morf.analyse('zamki')
         ##      morf.analyse('zamki')[0][2][1].split(':', 1)[0]
         sentence = [extract_lemm(morf.analyse(word)) for word in words_before_after]
 
-        ## chyba np. word2vec odróżnia wyrazy z wielkich i małych liter
+        ## in case word2vec cares about capital letters
         sentence = [word.lower() for word in sentence]
         extracted_words.append(sentence)
 
@@ -120,7 +120,6 @@ def extract_neighbor_words(sentences, before=3, after=3, stopwords=STOPWORDS, ke
     
 
 if __name__ == "__main__":
-    ## można zrobić yield
     docs = load_files(PATH)
 
     ## list all people marked in text
