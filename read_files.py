@@ -62,15 +62,6 @@ def find_sent_with_person(p_name, all_sentences):
                 selected_sentences.append(sentence)
     return selected_sentences
 
-
-def text_preprocess(sentences, stopwords):
-    docs = []
-    
-    for sentence in sentences:
-        
-        docs.append(sentence)
-    return docs 
-
 def make_word2vec(sentences):
     model = Word2Vec(sentences, size=100, window=5, min_count=3, workers=12)
     model.train(sentences, total_examples=len(sentences), epochs=5)
@@ -145,13 +136,3 @@ if __name__ == "__main__":
     filtered_sentences = find_sent_with_person(person1, sentences)
     
     a = extract_neighbor_words(filtered_sentences, before=1, after=1)
-
-    print('data loaded')
-    ## jest mocno nieoptymalnie
-    text = text_preprocess(docs, STOPWORDS)
-    print('text preprocessed')
-
-    ## train word2vec
-    model = make_word2vec(text)
-    print('model trained')
-    save_model(model)
