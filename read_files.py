@@ -3,7 +3,7 @@ from gensim.models import Word2Vec
 import glob 
 import string
 import re
-import morfeusz2
+# import morfeusz2
 import nltk
 PATH = 'categorization/learningData'
 
@@ -75,12 +75,12 @@ def save_model(model):
             vec_file.write(vec+'\n')
             metafile.write(word+'\n')
 
-def extract_neighbor_words(sentences, before=3, after=3, stopwords=STOPWORDS, keep_person=False):
+def extract_neighbor_words(sentences, entity, words_before=3, words_after=3, stopwords=STOPWORDS, keep_person=False):
     extracted_words= []
     ## http://morfeusz.sgjp.pl/download/
-    morf = morfeusz2.Morfeusz()
+    # morf = morfeusz2.Morfeusz()
     for sentence in sentences:
-        person = re.findall('">(.*?)</',sentence)[0].split()
+        persons = re.findall(f'<Entity name="{entity}".*?">(.*?)</', sentence)
         
         ## Remove entity
         ## <Entity name="Tomasz Sekielski" type="person" category="dziennikarze">Tomasz Sekielski</Entity>
@@ -94,26 +94,36 @@ def extract_neighbor_words(sentences, before=3, after=3, stopwords=STOPWORDS, ke
         sentence = sentence.translate(str.maketrans('', '', string.punctuation))
 
         ## Remove stopwords
-        sentence = [word for word in sentence.split() if word not in stopwords and len(word)>1]
+        sentence = [word for word in sentence.split() if word not in stopwords and len(word) > 1]
 
-        ## Find words before and after
-        min_idx = min([sentence.index(word) for word in person])
-        max_idx = max([sentence.index(word) for word in person])
-        words_before_after = sentence[max(min_idx-before,0):min_idx] + sentence[max_idx+1:min(max_idx+after+1, len(sentence))]
-        
-        if keep_person:
-            words_before_after = words_before_after + person
+        before_and_afters = []
+        for person in persons:
+            print(sentence)
+            before = sentence[:sentence.index(person.split()[0])]
+            before = before[-words_before:]
+            after = sentence[sentence.index(person.split()[-1]) + 1:]
 
-        ## Lemmatisation (not obligatory)
-        ## Sometimes returns many different results for specific words.
-        ## For exmaple for zamek returns zamek:s1, zamek:s2
-        ## Try: morf.analyse('zamki')
-        ##      morf.analyse('zamki')[0][2][1].split(':', 1)[0]
-        sentence = [extract_lemm(morf.analyse(word)) for word in words_before_after]
+            sentence = after  # update sentence to get different mention next time
 
-        ## in case word2vec cares about capital letters
-        sentence = [word.lower() for word in sentence]
-        extracted_words.append(sentence)
+            after = after[:words_after]
+            print('before:', before)
+            print('after:', after)
+
+
+            if keep_person:
+                words_before_after = before + person + after
+            else:
+                words_before_after = before + after
+
+            ## Lemmatisation (not obligatory)
+            ## Sometimes returns many different results for specific words.
+            ## For exmaple for zamek returns zamek:s1, zamek:s2
+            ## Try: morf.analyse('zamki')
+            ##      morf.analyse('zamki')[0][2][1].split(':', 1)[0]
+            # words_before_after = [extract_lemm(morf.analyse(word)) for word in words_before_after]
+            ## in case word2vec cares about capital letters
+            words_before_after = [word.lower() for word in words_before_after]
+            extracted_words.append(words_before_after)
 
     return extracted_words
 
@@ -134,4 +144,11 @@ if __name__ == "__main__":
     person1 = people[0]['name']
     filtered_sentences = find_sent_with_person(person1, sentences)
     
-    a = extract_neighbor_words(filtered_sentences, before=1, after=1)
+    a = extract_neighbor_words(filtered_sentences, person1, words_before=1, words_after=2)
+
+
+    test_sent = 'cośtam coś tam <Entity name="Tomasz sekielski" type="person" category="dziennikarze">Tomasz Sekielski</Entity> lalalal '
+    test_sent += test_sent
+    test_sent += 'cośtam coś tam <Entity name="Ktoś inny" type="person" category="dziennikarze">Ktoś inny</Entity> lalalal '
+
+    extract_neighbor_words([test_sent], "Tomasz sekielski", 2, 1)
