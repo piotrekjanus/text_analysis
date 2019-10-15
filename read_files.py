@@ -5,6 +5,9 @@ import string
 import re
 # import morfeusz2
 import nltk
+from flair.data import Sentence
+from flair.embeddings import FlairEmbeddings
+
 PATH = 'categorization/learningData'
 
 
@@ -75,59 +78,60 @@ def save_model(model):
             vec_file.write(vec+'\n')
             metafile.write(word+'\n')
 
-def extract_neighbor_words(sentences, entity, words_before=3, words_after=3, stopwords=STOPWORDS, keep_person=False):
-    extracted_words= []
-    ## http://morfeusz.sgjp.pl/download/
-    # morf = morfeusz2.Morfeusz()
+def clear_sentence_and_locate_entities(sentence, stopwords=STOPWORDS):
+    entities_and_used_form = re.findall('<Entity name="(.*?)".*?">(.*?)</', sentence)
+
+    ## Remove entity
+    ## <Entity name="Tomasz Sekielski" type="person" category="dziennikarze">Tomasz Sekielski</Entity>
+    ## will result as Tomasz Sekielski
+    sentence = remove_entity(sentence)
+
+    ## Remove digits
+    sentence = sentence.translate(str.maketrans('', '', string.digits))
+
+    ## Remove punctuation marks
+    sentence = sentence.translate(str.maketrans('', '', string.punctuation))
+
+    ## Remove stopwords
+    cleared_sentence = [word for word in sentence.split() if word not in stopwords and len(word) > 1]
+    print(cleared_sentence)
+    sentence = cleared_sentence
+    targets = []
+    already_parsed = 0
+    for entity, used_form in entities_and_used_form:
+        used_form_splitted = used_form.split()
+        start = sentence[already_parsed:].index(used_form_splitted[0]) + already_parsed
+        stop = start + len(used_form_splitted)
+        already_parsed = stop
+        targets.append({'start': start, 'length': len(used_form_splitted), 'used_form': used_form, 'entity': entity})
+    print(targets)
+
+    cleared_sentence = [word.lower() for word in cleared_sentence]
+
+    return cleared_sentence, targets
+
+def get_flair_embedding(sentence, flair_embeddings):
+    flair_sentence = Sentence(sentence)
+    flair_embeddings.embed(flair_sentence)
+    return [token.embedding for token in flair_sentence]
+
+def get_embeddings_of_entity_in_sequences(sentences, entity, window_size):
+    # Polish word embeddings
+    polish_flair_embeddings = FlairEmbeddings('polish-forward')
     for sentence in sentences:
-        persons = re.findall(f'<Entity name="{entity}".*?">(.*?)</', sentence)
-        
-        ## Remove entity
-        ## <Entity name="Tomasz Sekielski" type="person" category="dziennikarze">Tomasz Sekielski</Entity>
-        ## will result as Tomasz Sekielski
-        sentence = remove_entity(sentence)
+        cleared_sentence, targets = clear_sentence_and_locate_entities(sentence)
+        embeddings_of_tokens = get_flair_embedding(' '.join(cleared_sentence), polish_flair_embeddings)
+        assert (len(embeddings_of_tokens) == len(cleared_sentence))
+        for target in [ target for target in targets if target['entity'] == entity]:
+            neighboring_embeddings = embeddings_of_tokens[target['start'] - window_size: target['start']] + \
+                                     embeddings_of_tokens[target['start'] + target['length']: target['start'] + target['length'] + window_size]
+            neighbourhood = cleared_sentence[target['start'] - window_size: target['start']] + \
+                            cleared_sentence[target['start'] + target['length']: target['start'] + target['length'] + window_size]
 
-        ## Remove digits
-        sentence = sentence.translate(str.maketrans('', '', string.digits))
-
-        ## Remove punctuation marks
-        sentence = sentence.translate(str.maketrans('', '', string.punctuation))
-
-        ## Remove stopwords
-        sentence = [word for word in sentence.split() if word not in stopwords and len(word) > 1]
-
-        before_and_afters = []
-        for person in persons:
-            print(sentence)
-            before = sentence[:sentence.index(person.split()[0])]
-            before = before[-words_before:]
-            after = sentence[sentence.index(person.split()[-1]) + 1:]
-
-            sentence = after  # update sentence to get different mention next time
-
-            after = after[:words_after]
-            print('before:', before)
-            print('after:', after)
+            print(neighboring_embeddings)
+            print(neighbourhood)
 
 
-            if keep_person:
-                words_before_after = before + person + after
-            else:
-                words_before_after = before + after
-
-            ## Lemmatisation (not obligatory)
-            ## Sometimes returns many different results for specific words.
-            ## For exmaple for zamek returns zamek:s1, zamek:s2
-            ## Try: morf.analyse('zamki')
-            ##      morf.analyse('zamki')[0][2][1].split(':', 1)[0]
-            # words_before_after = [extract_lemm(morf.analyse(word)) for word in words_before_after]
-            ## in case word2vec cares about capital letters
-            words_before_after = [word.lower() for word in words_before_after]
-            extracted_words.append(words_before_after)
-
-    return extracted_words
-
-    
 
 if __name__ == "__main__":
     docs = load_files(PATH)
@@ -144,11 +148,9 @@ if __name__ == "__main__":
     person1 = people[0]['name']
     filtered_sentences = find_sent_with_person(person1, sentences)
     
-    a = extract_neighbor_words(filtered_sentences, person1, words_before=1, words_after=2)
-
-
-    test_sent = 'cośtam coś tam <Entity name="Tomasz sekielski" type="person" category="dziennikarze">Tomasz Sekielski</Entity> lalalal '
+    test_sent = 'cośtam coś tam <Entity name="Tomasz Sekielski" type="person" category="dziennikarze">Tomasza Sekielskiego</Entity> Llalal '
     test_sent += test_sent
     test_sent += 'cośtam coś tam <Entity name="Ktoś inny" type="person" category="dziennikarze">Ktoś inny</Entity> lalalal '
 
-    extract_neighbor_words([test_sent], "Tomasz sekielski", 2, 1)
+    print(test_sent)
+    get_embeddings_of_entity_in_sequences([test_sent], 'Tomasz Sekielski', 1)
