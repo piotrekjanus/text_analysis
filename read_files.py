@@ -76,6 +76,14 @@ def save_model(vec_entity):
             vec_file.write(vec+'\n')
             metafile.write(entity+'\n')
 
+def clear_sentence(sentence):
+    ## Remove digits
+    sentence = sentence.translate(str.maketrans('', '', string.digits))
+
+    ## Remove punctuation marks
+    sentence = sentence.translate(str.maketrans('', '', string.punctuation))
+    return sentence
+
 def clear_sentence_and_locate_entities(sentence, stopwords=STOPWORDS):
     entities_and_used_form = re.findall('<Entity name="(.*?)".*?">(.*?)</', sentence)
 
@@ -84,11 +92,7 @@ def clear_sentence_and_locate_entities(sentence, stopwords=STOPWORDS):
     ## will result as Tomasz Sekielski
     sentence = remove_entity(sentence)
 
-    ## Remove digits
-    sentence = sentence.translate(str.maketrans('', '', string.digits))
-
-    ## Remove punctuation marks
-    sentence = sentence.translate(str.maketrans('', '', string.punctuation))
+    sentence = clear_sentence(sentence)
 
     ## Remove stopwords
     cleared_sentence = [word for word in sentence.split() if word not in stopwords and len(word) > 1]
@@ -97,6 +101,7 @@ def clear_sentence_and_locate_entities(sentence, stopwords=STOPWORDS):
     targets = []
     already_parsed = 0
     for entity, used_form in entities_and_used_form:
+        used_form = clear_sentence(used_form)
         used_form_splitted = used_form.split()
         start = sentence[already_parsed:].index(used_form_splitted[0]) + already_parsed
         stop = start + len(used_form_splitted)
@@ -113,11 +118,11 @@ def get_flair_embedding(sentence, flair_embeddings):
     flair_embeddings.embed(flair_sentence)
     return [token.embedding for token in flair_sentence]
 
-def get_embeddings_of_entity_in_sequences(sentences, entity, window_size):
+def get_embeddings_of_entity_in_sequences(sentences, window_size):
     # Polish word embeddings
-    out_list = []
+    output = {}
     polish_flair_embeddings = FlairEmbeddings('polish-forward')
-    for sentence in sentences:
+    for sentence in tqdm(sentences):
         cleared_sentence, targets = clear_sentence_and_locate_entities(sentence)
         embeddings_of_tokens = get_flair_embedding(' '.join(cleared_sentence), polish_flair_embeddings)
         assert (len(embeddings_of_tokens) == len(cleared_sentence))
@@ -127,9 +132,12 @@ def get_embeddings_of_entity_in_sequences(sentences, entity, window_size):
             neighbourhood = cleared_sentence[target['start'] - window_size: target['start']] + \
                             cleared_sentence[target['start'] + target['length']: target['start'] + target['length'] + window_size]
             # print('\n---------\n')
-            out_list.append((neighboring_embeddings, target['entity']))
+            if target['entity'] in output.keys():
+                output[target['entity']].append(neighboring_embeddings)
+            else:
+                output[target['entity']] = [neighboring_embeddings]
             # print(neighbourhood)
-    return out_list
+    return output
 
 
 if __name__ == "__main__":
@@ -148,14 +156,17 @@ if __name__ == "__main__":
     filtered_sentences = find_sent_with_person(person1, sentences)
     
     test_sent = 'cośtam coś tam <Entity name="Tomasz Sekielski" type="person" category="dziennikarze">Tomasza Sekielskiego</Entity> Llalal '
-    test_sent += test_sent
+    test_sent += 'cośtam coś tam <Entity name="Tomasz Sekielski" type="person" category="dziennikarze">Tomasza-Sekielskiego</Entity> Llalal '
     test_sent += 'cośtam coś tam <Entity name="Ktoś inny" type="person" category="dziennikarze">Ktoś inny</Entity> lalalal '
 
+    get_embeddings_of_entity_in_sequences([test_sent], 1)
+
     print(test_sent)
-    b = []
-    for person in tqdm(people[1:3]):
-        filtered_sentences = find_sent_with_person(person['name'], sentences)
-        a = get_embeddings_of_entity_in_sequences(filtered_sentences, person['name'], 1)
-        b.extend(a)
-    save_model(b)
+    all_sentences = []
+    for doc in sentences:
+        for sentence in doc:
+            all_sentences.append(sentence)
+
+    person_embeddings_dict = get_embeddings_of_entity_in_sequences(all_sentences, 1)
+    save_model(person_embeddings_dict.items()[0])
     
