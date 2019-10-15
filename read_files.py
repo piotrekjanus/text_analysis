@@ -123,20 +123,23 @@ def get_embeddings_of_entity_in_sequences(sentences, window_size):
     output = {}
     polish_flair_embeddings = FlairEmbeddings('polish-forward')
     for sentence in tqdm(sentences):
-        cleared_sentence, targets = clear_sentence_and_locate_entities(sentence)
-        embeddings_of_tokens = get_flair_embedding(' '.join(cleared_sentence), polish_flair_embeddings)
-        assert (len(embeddings_of_tokens) == len(cleared_sentence))
-        for target in targets:
-            neighboring_embeddings = embeddings_of_tokens[target['start'] - window_size: target['start']] + \
-                                     embeddings_of_tokens[target['start'] + target['length']: target['start'] + target['length'] + window_size]
-            neighbourhood = cleared_sentence[target['start'] - window_size: target['start']] + \
-                            cleared_sentence[target['start'] + target['length']: target['start'] + target['length'] + window_size]
-            # print('\n---------\n')
-            if target['entity'] in output.keys():
-                output[target['entity']].append(neighboring_embeddings)
-            else:
-                output[target['entity']] = [neighboring_embeddings]
-            # print(neighbourhood)
+        try:
+            cleared_sentence, targets = clear_sentence_and_locate_entities(sentence)
+            embeddings_of_tokens = get_flair_embedding(' '.join(cleared_sentence), polish_flair_embeddings)
+            assert (len(embeddings_of_tokens) == len(cleared_sentence))
+            for target in targets:
+                neighboring_embeddings = embeddings_of_tokens[target['start'] - window_size: target['start']] + \
+                                         embeddings_of_tokens[target['start'] + target['length']: target['start'] + target['length'] + window_size]
+                neighbourhood = cleared_sentence[target['start'] - window_size: target['start']] + \
+                                cleared_sentence[target['start'] + target['length']: target['start'] + target['length'] + window_size]
+                # print('\n---------\n')
+                if target['entity'] in output.keys():
+                    output[target['entity']].append(neighboring_embeddings)
+                else:
+                    output[target['entity']] = [neighboring_embeddings]
+                # print(neighbourhood)
+        except:
+            print(f"failed to process: {sentence}")
     return output
 
 
