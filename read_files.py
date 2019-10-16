@@ -127,7 +127,7 @@ def get_embeddings_of_entity_in_corpus(documents, window_size = 5):
     polish_flair_embeddings = FlairEmbeddings('polish-forward')
 
     for document_id, document in enumerate(documents):
-        for sentence in document:
+        for sentence in tqdm(document):
             try:
                 cleared_sentence, targets = clear_sentence_and_locate_entities(sentence)
                 if len(targets) == 0:
@@ -137,17 +137,12 @@ def get_embeddings_of_entity_in_corpus(documents, window_size = 5):
                 for target in targets:
                     neighboring_embeddings = embeddings_of_tokens[target['start'] - window_size: target['start']] + \
                                              embeddings_of_tokens[target['start'] + target['length']: target['start'] + target['length'] + window_size]
-                    # print('\n ---------- \n')
-                    # print(output[target['entity']].keys())
-                    # print('\n ---------- \n')
+
                     if target['entity'] not in list(output.keys()):
-                        print('\n ---- TU ---- \n')
                         output[target['entity']] = {document_id: [neighboring_embeddings]}
                     elif document_id not in output[target['entity']].keys():
-                        print('\n ---- TAM ---- \n')
                         output[target['entity']][document_id] = neighboring_embeddings
                     else:
-                        print('\n ---- I TU ---- \n')
                         output[target['entity']][document_id].append(neighboring_embeddings)
 
             except:
@@ -172,6 +167,6 @@ if __name__ == "__main__":
     documents = [extract_sentences(document, tokenizer) for document in docs]
     documents = [doc for doc in documents if 'Sekielski' in doc[0]]
 
-    embeddings = get_embeddings_of_entity_in_corpus(documents[:10], 5)
+    embeddings = get_embeddings_of_entity_in_corpus(documents[:2], 5)
     save_embeddings(embeddings)
 
