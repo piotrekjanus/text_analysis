@@ -9,6 +9,7 @@ from flair.data import Sentence
 from flair.embeddings import FlairEmbeddings
 from tqdm import tqdm
 import numpy as np
+import pickle
 
 PATH = 'categorization/learningData'
 
@@ -120,34 +121,38 @@ def get_flair_embedding(sentence, flair_embeddings):
     flair_embeddings.embed(flair_sentence)
     return [token.embedding for token in flair_sentence]
 
-def get_embeddings_of_entity_in_sequences(sentences, window_size):
+def get_embeddings_of_entity_in_corpus(documents, window_size = 5):
     # Polish word embeddings
     output = {}
     polish_flair_embeddings = FlairEmbeddings('polish-forward')
-    for sentence in tqdm(sentences):
-        try:
-            cleared_sentence, targets = clear_sentence_and_locate_entities(sentence)
-            if len(targets) == 0:
-                continue
-            embeddings_of_tokens = get_flair_embedding(' '.join(cleared_sentence), polish_flair_embeddings)
-            assert (len(embeddings_of_tokens) == len(cleared_sentence))
-            for target in targets:
-                neighboring_embeddings = embeddings_of_tokens[target['start'] - window_size: target['start']] + \
-                                         embeddings_of_tokens[target['start'] + target['length']: target['start'] + target['length'] + window_size]
-                neighbourhood = cleared_sentence[target['start'] - window_size: target['start']] + \
-                                cleared_sentence[target['start'] + target['length']: target['start'] + target['length'] + window_size]
-                # print('\n---------\n')
-                if target['entity'] in output.keys():
-                    output[target['entity']].append(neighboring_embeddings)
-                else:
-                    output[target['entity']] = [neighboring_embeddings]
-                # print(neighbourhood)
-        except:
-            print(f"failed to process: {sentence}")
+
+    for document_id, document in enumerate(documents):
+        for sentence in tqdm(document):
+            try:
+                cleared_sentence, targets = clear_sentence_and_locate_entities(sentence)
+                if len(targets) == 0:
+                    continue
+                embeddings_of_tokens = get_flair_embedding(' '.join(cleared_sentence), polish_flair_embeddings)
+                assert (len(embeddings_of_tokens) == len(cleared_sentence))
+                for target in targets:
+                    neighboring_embeddings = embeddings_of_tokens[target['start'] - window_size: target['start']] + \
+                                             embeddings_of_tokens[target['start'] + target['length']: target['start'] + target['length'] + window_size]
+                    if not target['entity'] in output.keys() or document_id not in output[target['entity']]:
+                        output[target['entity']] = {document_id: [neighboring_embeddings]}
+                    else:
+                        output[target['entity']][document_id].append(neighboring_embeddings)
+
+            except:
+                print(f"failed to process: {sentence}")
     return output
+
+def save_embeddings(embeddings):
+    with open('embeddings.pickle', 'wb+') as f:
+        pickle.dump(embeddings, f)
 
 
 if __name__ == "__main__":
+
     docs = load_files(PATH)
 
     ## list all people marked in text
@@ -156,23 +161,7 @@ if __name__ == "__main__":
 
     ## returns list of sentences in each document
     tokenizer = nltk.data.load('tokenizers/punkt/polish.pickle')
-    sentences = [extract_sentences(document, tokenizer) for document in docs]
+    documents = [extract_sentences(document, tokenizer) for document in docs]
 
-    ## find sentences for specific person
-    person1 = people[0]['name']
-    filtered_sentences = find_sent_with_person(person1, sentences)
-    
-    test_sent = 'cośtam coś tam <Entity name="Tomasz Sekielski" type="person" category="dziennikarze">Tomasza Sekielskiego</Entity> Llalal '
-    test_sent += 'cośtam coś tam <Entity name="Tomasz Sekielski" type="person" category="dziennikarze">Tomasza-Sekielskiego</Entity> Llalal '
-    test_sent += 'cośtam coś tam <Entity name="Ktoś inny" type="person" category="dziennikarze">Ktoś inny</Entity> lalalal '
-
-    get_embeddings_of_entity_in_sequences([test_sent], 1)
-
-    print(test_sent)
-    all_sentences = []
-    for doc in sentences:
-        for sentence in doc:
-            all_sentences.append(sentence)
-
-    person_embeddings_dict = get_embeddings_of_entity_in_sequences(all_sentences[:100], 1)
-    save_model(person_embeddings_dict)
+    embeddings = get_embeddings_of_entity_in_corpus(documents[:100], 5)
+    save_embeddings(embeddings)
