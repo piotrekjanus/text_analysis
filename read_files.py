@@ -8,6 +8,7 @@ import nltk
 from flair.data import Sentence
 from flair.embeddings import FlairEmbeddings
 from tqdm import tqdm
+import numpy as np
 
 PATH = 'categorization/learningData'
 
@@ -67,14 +68,15 @@ def find_sent_with_person(p_name, all_sentences):
     return selected_sentences
 
 ## files needed for tensorflow projector
-def save_model(vec_entity):
+def save_model(entities_and_embeddings):
     with open('word2vec_emb.tsv','w', encoding='utf-8') as vec_file, open('word2vec_meta.tsv','w', encoding='utf-8') as metafile:
-        for vec, entity in vec_entity:
-            vec = [v.numpy() for v in vec]
-            vec = np.mean(vec, axis=0) 
-            vec = '\t'.join(map(str, vec))
-            vec_file.write(vec+'\n')
-            metafile.write(entity+'\n')
+        for entity, embeddings in entities_and_embeddings.items():
+            for embedding in embeddings:
+                vec = [v.numpy() for v in embedding]
+                vec = np.mean(vec, axis=0)
+                vec = '\t'.join(map(str, vec))
+                vec_file.write(vec+'\n')
+                metafile.write(entity+'\n')
 
 def clear_sentence(sentence):
     ## Remove digits
@@ -125,6 +127,8 @@ def get_embeddings_of_entity_in_sequences(sentences, window_size):
     for sentence in tqdm(sentences):
         try:
             cleared_sentence, targets = clear_sentence_and_locate_entities(sentence)
+            if len(targets) == 0:
+                continue
             embeddings_of_tokens = get_flair_embedding(' '.join(cleared_sentence), polish_flair_embeddings)
             assert (len(embeddings_of_tokens) == len(cleared_sentence))
             for target in targets:
@@ -170,6 +174,5 @@ if __name__ == "__main__":
         for sentence in doc:
             all_sentences.append(sentence)
 
-    person_embeddings_dict = get_embeddings_of_entity_in_sequences(all_sentences, 1)
-    save_model(person_embeddings_dict.items()[0])
-    
+    person_embeddings_dict = get_embeddings_of_entity_in_sequences(all_sentences[:100], 1)
+    save_model(person_embeddings_dict)
