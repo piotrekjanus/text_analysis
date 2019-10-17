@@ -135,13 +135,13 @@ def get_embeddings_of_entity_in_corpus(documents, window_size = 5):
                 embeddings_of_tokens = get_flair_embedding(' '.join(cleared_sentence), polish_flair_embeddings)
                 assert (len(embeddings_of_tokens) == len(cleared_sentence))
                 for target in targets:
-                    neighboring_embeddings = embeddings_of_tokens[target['start'] - window_size: target['start']] + \
-                                             embeddings_of_tokens[target['start'] + target['length']: target['start'] + target['length'] + window_size]
+                    neighboring_embeddings = [embeddings_of_tokens[target['start'] - window_size: target['start']]] + \
+                                             [embeddings_of_tokens[target['start'] + target['length']: target['start'] + target['length'] + window_size]]
 
                     if target['entity'] not in list(output.keys()):
                         output[target['entity']] = {document_id: [neighboring_embeddings]}
                     elif document_id not in output[target['entity']].keys():
-                        output[target['entity']][document_id] = neighboring_embeddings
+                        output[target['entity']][document_id] = [neighboring_embeddings]
                     else:
                         output[target['entity']][document_id].append(neighboring_embeddings)
 
@@ -167,6 +167,6 @@ if __name__ == "__main__":
     documents = [extract_sentences(document, tokenizer) for document in docs]
     documents = [doc for doc in documents if 'Sekielski' in doc[0]]
 
-    embeddings = get_embeddings_of_entity_in_corpus(documents[:2], 5)
+    embeddings = get_embeddings_of_entity_in_corpus(documents[:5], 5)
     save_embeddings(embeddings)
 
