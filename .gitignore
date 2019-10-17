@@ -1,5 +1,5 @@
 .vscode/settings.json
 categorization/
 text_env/
-word2vec_emb.tsv
-word2vec_meta.tsv
+*.tsv
+*.pickle

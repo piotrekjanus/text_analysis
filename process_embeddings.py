@@ -2,8 +2,8 @@ FILE_NAME = 'embeddings.pickle'
 import pickle
 import numpy as np
 
-def save_model(person_vec):
-    with open('word2vec_emb.tsv','w', encoding='utf-8') as vec_file, open('word2vec_meta.tsv','w', encoding='utf-8') as metafile:
+def save_model(person_vec, file_name):
+    with open(f'{file_name}-emb.tsv','w', encoding='utf-8') as vec_file, open(f'{file_name}-meta.tsv','w', encoding='utf-8') as metafile:
         for entity, embeddings in person_vec:
             vec = '\t'.join(map(str, embeddings))
             vec_file.write(vec+'\n')
@@ -90,9 +90,10 @@ def prepare_vector(embed, context='single', window=5):
 if __name__ == "__main__":
     with open(FILE_NAME, 'rb') as f:
         embed = pickle.load(f)
-    to_save = prepare_vector(embed, context='single', window=3)
-    for a,b in to_save:
-        print(len(b))
-    save_model(to_save)
+
+    for context in ['single', 'document', 'corpus']:
+        for window in [1, 2, 3, 4, 5]:
+            to_save = prepare_vector(embed, context=context, window=window)
+            save_model(to_save, f'{context}-{window}')
 
 

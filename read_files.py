@@ -165,8 +165,7 @@ if __name__ == "__main__":
     ## returns list of sentences in each document
     tokenizer = nltk.data.load('tokenizers/punkt/polish.pickle')
     documents = [extract_sentences(document, tokenizer) for document in docs]
-    documents = [doc for doc in documents if 'Sekielski' in doc[0]]
 
-    embeddings = get_embeddings_of_entity_in_corpus(documents[:5], 5)
+    embeddings = get_embeddings_of_entity_in_corpus(documents, 5)
     save_embeddings(embeddings)
 
