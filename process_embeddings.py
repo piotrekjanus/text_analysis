@@ -66,13 +66,15 @@ def prepare_vector(embed, context='single', window=5):
             ## Get all documents
             docs = list(embed[person].values())
             corp_sent = []
-            ## For doc in docs 
+            ## For doc in docs
             for doc in docs:
                 ## For sent in doc
                 for sent in doc:
                     if isinstance(sent, list):
                         before = sent[0]
                         after = sent[1]
+                        if len(before) == 0 and len(after) == 0:
+                            continue
                         vec = before[:window] + after[:window]
                         vec = [v.numpy() for v in vec]
                         if len(vec)<2:
@@ -83,8 +85,9 @@ def prepare_vector(embed, context='single', window=5):
                         vec = sent.numpy() 
                     if len(vec)>0:
                         corp_sent.append(vec)
-            vec = np.mean(corp_sent, axis=0)    
-            person_vec.append((person, vec))
+            if len(corp_sent) > 0:
+                vec = np.mean(corp_sent, axis=0)
+                person_vec.append((person, vec))
     return person_vec
 
 if __name__ == "__main__":
