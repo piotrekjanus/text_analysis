@@ -6,7 +6,7 @@ import re
 # import morfeusz2
 import nltk
 from flair.data import Sentence
-from flair.embeddings import FlairEmbeddings
+from flair.embeddings import FlairEmbeddings, BertEmbeddings
 from tqdm import tqdm
 import numpy as np
 import pickle
@@ -116,15 +116,21 @@ def clear_sentence_and_locate_entities(sentence, stopwords=STOPWORDS):
 
     return cleared_sentence, targets
 
-def get_flair_embedding(sentence, flair_embeddings):
-    flair_sentence = Sentence(sentence)
-    flair_embeddings.embed(flair_sentence)
-    return [token.embedding for token in flair_sentence]
+def get_embedding(sentence, embeddings):
+    sentence = Sentence(sentence)
+    embeddings.embed(sentence)
+    return [token.embedding for token in sentence]
+
+def createEmbeddings(name):
+    if name == 'bert':
+        return BertEmbeddings('bert-base-multilingual-cased')
+    if name == 'flair':
+        return FlairEmbeddings('polish-forward')
 
 def get_embeddings_of_entity_in_corpus(documents, window_size = 5):
     # Polish word embeddings
     output = {}
-    polish_flair_embeddings = FlairEmbeddings('polish-forward')
+    embeddings = createEmbeddings('bert')
 
     for document_id, document in enumerate(documents):
         for sentence in tqdm(document):
@@ -132,7 +138,7 @@ def get_embeddings_of_entity_in_corpus(documents, window_size = 5):
                 cleared_sentence, targets = clear_sentence_and_locate_entities(sentence)
                 if len(targets) == 0:
                     continue
-                embeddings_of_tokens = get_flair_embedding(' '.join(cleared_sentence), polish_flair_embeddings)
+                embeddings_of_tokens = get_embedding(' '.join(cleared_sentence), embeddings)
                 assert (len(embeddings_of_tokens) == len(cleared_sentence))
                 for target in targets:
                     neighboring_embeddings = [embeddings_of_tokens[target['start'] - window_size: target['start']]] + \
