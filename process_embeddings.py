@@ -2,7 +2,9 @@ FILE_NAME = 'embeddings.pickle'
 import pickle
 import numpy as np
 
-def save_model(person_vec, file_name):
+from read_files import list_people, load_files, PATH
+
+def save_model(person_vec, file_name, people):
     with open(f'{file_name}-emb.tsv','w', encoding='utf-8') as vec_file, open(f'{file_name}-meta.tsv','w', encoding='utf-8') as metafile:
         metafile.write('Imie\ttyp\tzawod'+'\n')
         for entity, embeddings in person_vec:
@@ -103,7 +105,10 @@ if __name__ == "__main__":
     with open(FILE_NAME, 'rb') as f:
         embed = pickle.load(f)
 
-    for context in ['single','document','corpus']:
-        for window in tqdm([1,2,3,4,5]):
+    docs = load_files(PATH)
+    people = list_people(docs)
+
+    for context in ['document', 'corpus']:
+        for window in tqdm([3, 5]):
             to_save = prepare_vector(embed, context=context, window=window)
-            save_model(to_save, f'{context}-{window}')
+            save_model(to_save, f'{context}-{window}', people)
