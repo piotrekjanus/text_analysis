@@ -1,6 +1,9 @@
 FILE_NAME = 'embeddings.pickle'
 import pickle
 import numpy as np
+from read_files import list_people, load_files, PATH
+from tqdm import tqdm
+
 
 def save_model(person_vec, file_name):
     with open(f'{file_name}-emb.tsv','w', encoding='utf-8') as vec_file, open(f'{file_name}-meta.tsv','w', encoding='utf-8') as metafile:
@@ -99,11 +102,15 @@ def prepare_vector(embed, context='single', window=5):
     return person_vec
 
 if __name__ == "__main__":
-    from tqdm import tqdm
+    docs = load_files(PATH)
+
+    ## list all people marked in text
+    ## returns list of dicts, each person has attr: name, category, type 
+    people = list_people(docs)
     with open(FILE_NAME, 'rb') as f:
         embed = pickle.load(f)
 
-    for context in ['single','document','corpus']:
-        for window in tqdm([1,2,3,4,5]):
+    for context in ['corpus']:
+        for window in tqdm([1,2]):
             to_save = prepare_vector(embed, context=context, window=window)
             save_model(to_save, f'{context}-{window}')
