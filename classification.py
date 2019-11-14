@@ -9,6 +9,7 @@ from keras.callbacks import EarlyStopping
 from keras.utils import to_categorical
 from collections import Counter
 from sklearn.metrics import classification_report
+from read_embeddings import get_labels_and_embeddings, get_onet_train_test_data
 
 def recall_m(y_true, y_pred):
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
@@ -69,10 +70,26 @@ def preprocess_data(data, labels):
     labels = to_categorical(labels)
     return data, labels, encoder
 
+
+def get_onet_data():
+    test, train = get_onet_train_test_data(3, 'corpus')
+    test = get_labels_and_embeddings(test)
+    train = get_labels_and_embeddings(train)
+    encoder = LabelEncoder()
+    train['labels'] = encoder.fit_transform(train['labels'])
+    test['labels'] = encoder.transform(test['labels'])
+    train['labels'] = to_categorical( train['labels'])
+    test['labels'] = to_categorical( test['labels'])
+
+    return train['embeddings'], test['embeddings'], train['labels'], test['labels']
+
 if __name__ == "__main__":
-    data, labels = load_data('single-5')
-    data, labels, encoder = preprocess_data(data, labels)
-    x_train, x_test, y_train, y_test = split_dataset(data, labels)
+    
+    # data, labels = load_data('corpus-2')
+    # data, labels, encoder = preprocess_data(data, labels)
+    # x_train, x_test, y_train, y_test = split_dataset(data, labels)
+
+    x_train, x_test, y_train, y_test = get_onet_data()
 
     ## make MLP
     model = make_MLP(x_train.shape[1], y_train.shape[1])
