@@ -10,8 +10,7 @@ from flair.embeddings import FlairEmbeddings, BertEmbeddings
 from tqdm import tqdm
 import numpy as np
 import pickle
-
-PATH = 'categorization/learningData'
+import env
 
 
 with open('stopwords.txt', encoding='utf-8') as f:
@@ -127,10 +126,10 @@ def createEmbeddings(name):
     if name == 'flair':
         return FlairEmbeddings('polish-forward')
 
-def get_embeddings_of_entity_in_corpus(documents, window_size = 5):
+def get_embeddings_of_entity_in_corpus(documents, window_size = 5, method = 'bert'):
     # Polish word embeddings
     output = {}
-    embeddings = createEmbeddings('bert')
+    embeddings = createEmbeddings(method)
 
     for document_id, document in enumerate(documents):
         for sentence in tqdm(document):
@@ -156,13 +155,12 @@ def get_embeddings_of_entity_in_corpus(documents, window_size = 5):
     return output
 
 def save_embeddings(embeddings):
-    with open('embeddings.pickle', 'wb+') as f:
+    with open(env.outPath + '/embeddings.pickle', 'wb+') as f:
         pickle.dump(embeddings, f)
 
 
-if __name__ == "__main__":
-
-    docs = load_files(PATH)
+def read_files(method, test = False):
+    docs = load_files(env.learningDataPath)
 
     ## list all people marked in text
     ## returns list of dicts, each person has attr: name, category, type 
@@ -170,8 +168,13 @@ if __name__ == "__main__":
 
     ## returns list of sentences in each document
     tokenizer = nltk.data.load('tokenizers/punkt/polish.pickle')
+    if test:
+        docs = docs[0:50]
     documents = [extract_sentences(document, tokenizer) for document in docs]
 
-    embeddings = get_embeddings_of_entity_in_corpus(documents, 5)
+    embeddings = get_embeddings_of_entity_in_corpus(documents, 5, method)
     save_embeddings(embeddings)
 
+
+if __name__ == "__main__":
+    read_files('bert')

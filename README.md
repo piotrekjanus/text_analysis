@@ -14,3 +14,11 @@ Pipeline is splited into two parts:
 
 ## creation pf emtity embeddings
 * generates embeddings with specified context level, and window size
+
+# Local variables
+Before running the code, create file `env.py` in main directory (ignored by Git), that contains the following variables:
+
+``` Python
+learningDataPath = '[path]'
+outPath = '[path]'
+```
