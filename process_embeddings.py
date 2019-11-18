@@ -2,7 +2,9 @@ FILE_NAME = 'embeddings.pickle'
 import pickle
 import numpy as np
 
-from read_files import list_people, load_files, PATH
+from read_files import list_people, load_files
+import env
+
 
 def save_model(person_vec, file_name, people):
     with open(f'{file_name}-emb.tsv','w', encoding='utf-8') as vec_file, open(f'{file_name}-meta.tsv','w', encoding='utf-8') as metafile:
@@ -100,15 +102,28 @@ def prepare_vector(embed, context='single', window=5):
                 person_vec.append((person, vec))
     return person_vec
 
-if __name__ == "__main__":
+
+def generate_embeddings(corpus_dir, out_dir, context, window):
     from tqdm import tqdm
-    with open(FILE_NAME, 'rb') as f:
+    with open(env.tmp_data_path + '/' + FILE_NAME, 'rb') as f:
         embed = pickle.load(f)
 
-    docs = load_files(PATH)
+    docs = load_files(corpus_dir)
+    people = list_people(docs)
+
+    to_save = prepare_vector(embed, context=context, window=window)
+    save_model(to_save, f'{out_dir}/{context}-{window}', people)
+
+
+if __name__ == "__main__":
+    from tqdm import tqdm
+    with open(env.tmp_data_path + '/' + FILE_NAME, 'rb') as f:
+        embed = pickle.load(f)
+
+    docs = load_files(env.learning_data_path)
     people = list_people(docs)
 
     for context in ['document', 'corpus']:
         for window in tqdm([3, 5]):
             to_save = prepare_vector(embed, context=context, window=window)
-            save_model(to_save, f'{context}-{window}', people)
+            save_model(to_save, f'{env.out_path}/{context}-{window}', people)
