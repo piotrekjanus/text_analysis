@@ -71,8 +71,9 @@ def save_one_mention_context(vecs, person_list, profession_dict, output_name):
         vectors.append(vecs[i])
         labels.append(person_list[i])
     
-    np.savetxt(output_name + "_om_vecs.tsv", np.array(vectors), delimiter="\t")
-    with open(output_name + "_om_labels.tsv", 'w') as f:
+    np.savetxt(output_name + "-emb.tsv", np.array(vectors), delimiter="\t")
+    with open(output_name + "-meta.tsv", 'w', encoding='utf-8') as f:
+        f.write('Imie\tzawod'+'\n')
         for label in labels:
             f.write(label + "\t" + profession_dict[label] + "\n")
 
@@ -89,8 +90,9 @@ def save_document_context(vecs, person_list, document_dict, person_dict, profess
                 vectors.append(np.average(document_person_vecs, axis=0))
                 labels.append(person)
     
-    np.savetxt(output_name + "_document_vecs.tsv", vectors, delimiter="\t")
-    with open(output_name + "_document_labels.tsv", 'w') as f:
+    np.savetxt(output_name + "-emb.tsv", vectors, delimiter="\t")
+    with open(output_name + "-meta.tsv", 'w', encoding='utf-8') as f:
+        f.write('Imie\tzawod'+'\n')
         for label in labels:
             f.write(label + "\t" + profession_dict[label] + "\n")
 
@@ -106,8 +108,9 @@ def save_corpus_context(vecs, person_list, person_dict, profession_dict, output_
             vectors.append(np.average(person_vecs, axis=0))
             labels.append(person)
 
-    np.savetxt(output_name + "_corpus_vecs.tsv", vectors, delimiter="\t")
-    with open(output_name + "_corpus_labels.tsv", 'w') as f:
+    np.savetxt(output_name + "-emb.tsv", vectors, delimiter="\t")
+    with open(output_name + "-meta.tsv", 'w', encoding='utf-8') as f:
+        f.write('Imie\tzawod'+'\n')
         for label in labels:
             f.write(label + "\t" + profession_dict[label] + "\n")
 
@@ -131,12 +134,11 @@ def elmo_emb_2_vec(elmo_emb):
     return res
 
 
-def elmo_read_and_generate_vecs(korpus: str, size : int, output_name: str, test = False):
+def elmo_read_and_generate_vecs(korpus_path: str, size : int, test = False):
     """
     INPUT:
     korpus - nazwa folderu z korpusem (np. "korpusGAZETA")
     size - rozmiar sąsiedztwa budującego pojedynczą frazę (liczba słów w tył i w przód względem nazwiska)
-    output_name - przedrostek nazw plików wejściowych - bedą miały format "{output_name}_{oznaczenie_korpusu}_{labels/vecs}.tsv"
     
     OUTPUT:
     vecs - wektory przetworzone przez elmo - 1 wektor dla frazy zdubowanej napodstawie sąsiedztwa
@@ -145,7 +147,7 @@ def elmo_read_and_generate_vecs(korpus: str, size : int, output_name: str, test 
     
     elmo = Elmo(options_file, weight_file, 1, dropout=0)
     
-    path_raw = f'{env.learning_data_path}/{korpus}'
+    path_raw = korpus_path
 
     [corpus_list, person_list, document_dict, person_dict, profession_dict] = read_corpus(path_raw, size, test)
     
@@ -162,13 +164,14 @@ def elmo_read_and_generate_vecs(korpus: str, size : int, output_name: str, test 
     return [vecs, corpus_list, person_list, document_dict, person_dict, profession_dict]
 
 
-def generate_elmo_embeddings(korpus_name, window, test=False):
-    save_name = f'{env.out_path}/{korpus_name}-{window}'
-    [vecs, corpus_list, person_list, document_dict, person_dict, profession_dict] = elmo_read_and_generate_vecs(korpus_name, window, save_name, test)
+def generate_elmo_embeddings(korpus_path, window, test=False):
+    save_name = f'{env.out_path}/{korpus_path}-{window}'
+    [vecs, corpus_list, person_list, document_dict, person_dict, profession_dict] = elmo_read_and_generate_vecs(korpus_path, window, test)
 
     save_one_mention_context(vecs, person_list, profession_dict, save_name)
     save_document_context(vecs, person_list, document_dict, person_dict, profession_dict, save_name)
     save_corpus_context(vecs, person_list, person_dict, profession_dict, save_name)
 
 if __name__ == "__main__":
-    generate_elmo_embeddings('korpusGAZETA', 3, True)
+    korpus = f'{env.learning_data_path}/korpusGAZETA'
+    generate_elmo_embeddings(korpus, 3, True)
