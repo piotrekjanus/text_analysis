@@ -2,6 +2,8 @@
 
 This is a simple pipeline for parsing and creating embeddings of "Entity Corpus". 
 
+# Description of read_files.py and process_embeddings.py
+
 Pipeline is splited into two parts:
 * text processing
 * creation of entity embeddings
@@ -19,6 +21,10 @@ Pipeline is splited into two parts:
 Before running the code, create file `env.py` in main directory (ignored by Git), that contains the following variables:
 
 ``` Python
-learningDataPath = '[path]'
-outPath = '[path]'
+learning_data_path = '[path]'
+out_path = '[path]'
+elmo_pl_path = '[path]'
 ```
+
+# Downloading ELMO
+Before running the code download and extract ELMO pretreined for Polish to directory indicated in `env.py` from https://drive.google.com/file/d/110c2H7_fsBvVmGJy08FEkkyRiMOhInBP/view?usp=sharing

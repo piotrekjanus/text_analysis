@@ -155,12 +155,12 @@ def get_embeddings_of_entity_in_corpus(documents, window_size = 5, method = 'ber
     return output
 
 def save_embeddings(embeddings):
-    with open(env.outPath + '/embeddings.pickle', 'wb+') as f:
+    with open(env.out_path + '/embeddings.pickle', 'wb+') as f:
         pickle.dump(embeddings, f)
 
 
 def read_files(method, test = False):
-    docs = load_files(env.learningDataPath)
+    docs = load_files(env.learning_data_path)
 
     ## list all people marked in text
     ## returns list of dicts, each person has attr: name, category, type 

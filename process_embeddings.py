@@ -7,7 +7,7 @@ import env
 
 
 def save_model(person_vec, file_name, people):
-    with open(f'{env.outPath}/{file_name}-emb.tsv','w', encoding='utf-8') as vec_file, open(f'{env.outPath}/{file_name}-meta.tsv','w', encoding='utf-8') as metafile:
+    with open(f'{env.out_path}/{file_name}-emb.tsv','w', encoding='utf-8') as vec_file, open(f'{env.out_path}/{file_name}-meta.tsv','w', encoding='utf-8') as metafile:
         metafile.write('Imie\ttyp\tzawod'+'\n')
         for entity, embeddings in person_vec:
             try:
@@ -105,10 +105,10 @@ def prepare_vector(embed, context='single', window=5):
 
 def generate_embeddings(context, window):
     from tqdm import tqdm
-    with open(env.outPath + '/' + FILE_NAME, 'rb') as f:
+    with open(env.out_path + '/' + FILE_NAME, 'rb') as f:
         embed = pickle.load(f)
 
-    docs = load_files(env.learningDataPath)
+    docs = load_files(env.learning_data_path)
     people = list_people(docs)
 
     to_save = prepare_vector(embed, context=context, window=window)
@@ -117,10 +117,10 @@ def generate_embeddings(context, window):
 
 if __name__ == "__main__":
     from tqdm import tqdm
-    with open(env.outPath + '/' + FILE_NAME, 'rb') as f:
+    with open(env.out_path + '/' + FILE_NAME, 'rb') as f:
         embed = pickle.load(f)
 
-    docs = load_files(env.learningDataPath)
+    docs = load_files(env.learning_data_path)
     people = list_people(docs)
 
     for context in ['document', 'corpus']:
