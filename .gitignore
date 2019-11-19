@@ -3,3 +3,5 @@ categorization/
 text_env/
 *.tsv
 *.pickle
+env.py
+__pycache__
