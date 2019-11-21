@@ -58,7 +58,7 @@ def trim_emb_matrix(embed, size = 5):
                         mat = np.array(new_list)[idx]
                     else:
                         mat = new_list + list(np.zeros((size - n_el, 2048)))
-            trimmed_mat.append(mat)
+            trimmed_mat.append((person,mat))
     return trimmed_mat
 
 
@@ -167,8 +167,8 @@ if __name__ == "__main__":
     # ex. Counter(get_statistics(embed))
 
     # returns trimmed matrix (list of N vectors) according to size parameter
-    # trim_emb_matrix(embed)
-
+    a = trim_emb_matrix(embed)
+    print(a[5])
     # for context in ['single']:
     #     for window in tqdm([5]):
     #         to_save = prepare_vector(embed, context=context, window=window)
