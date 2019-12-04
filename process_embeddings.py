@@ -1,11 +1,15 @@
 FILE_NAME = 'embeddings.pickle'
 import pickle
 import numpy as np
-from read_files import list_people, load_files, PATH
+from read_files import list_people, load_files
 from tqdm import tqdm
 
 
-def save_model(person_vec, file_name):
+from read_files import list_people, load_files
+import env
+
+
+def save_model(person_vec, file_name, people):
     with open(f'{file_name}-emb.tsv','w', encoding='utf-8') as vec_file, open(f'{file_name}-meta.tsv','w', encoding='utf-8') as metafile:
         metafile.write('Imie\ttyp\tzawod'+'\n')
         for entity, embeddings in person_vec:
@@ -21,6 +25,43 @@ def save_model(person_vec, file_name):
                 metafile.write(entity_vec+'\n')
             except:
                 pass
+
+def get_statistics(embed):
+    length_stat = []
+    for person in tqdm(embed.keys()):
+            ## Get all documents
+        docs = list(embed[person].values())
+            ## For doc in docs 
+        for doc in docs:
+                ## For sent in doc
+            for sent in doc:
+                if isinstance(sent, list):
+                    length = len(sent[0]) + len(sent[1])
+            length_stat.append(length)
+    return length_stat
+
+def trim_emb_matrix(embed, size = 5):
+    trimmed_mat = []
+    for person in tqdm(embed.keys()):
+            ## Get all documents
+        docs = list(embed[person].values())
+            ## For doc in docs 
+        for doc in docs:
+                ## For sent in doc
+            for sent in doc:
+                if isinstance(sent, list):
+                    n_el = len(sent[0]) + len(sent[1])
+                    new_list = list(sent[0]) + list(sent[1])
+                    new_list = [el.numpy() for el in new_list]
+                    if n_el >= size:
+                        idx = np.random.choice(len(new_list), size=size, replace=False)
+                        mat = np.array(new_list)[idx]
+                    else:
+                        mat = new_list + list(np.zeros((size - n_el, 2048)))
+            trimmed_mat.append((person,mat))
+    return trimmed_mat
+
+
 
 def prepare_vector(embed, context='single', window=5):
     person_vec = []
@@ -101,16 +142,34 @@ def prepare_vector(embed, context='single', window=5):
                 person_vec.append((person, vec))
     return person_vec
 
-if __name__ == "__main__":
-    docs = load_files(PATH)
 
-    ## list all people marked in text
-    ## returns list of dicts, each person has attr: name, category, type 
-    people = list_people(docs)
-    with open(FILE_NAME, 'rb') as f:
+def generate_embeddings(corpus_dir, out_dir, context, window):
+    from tqdm import tqdm
+    with open(env.tmp_data_path + '/' + FILE_NAME, 'rb') as f:
         embed = pickle.load(f)
 
-    for context in ['corpus']:
-        for window in tqdm([1,2]):
-            to_save = prepare_vector(embed, context=context, window=window)
-            save_model(to_save, f'{context}-{window}')
+    docs = load_files(corpus_dir)
+    people = list_people(docs)
+
+    to_save = prepare_vector(embed, context=context, window=window)
+    save_model(to_save, f'{out_dir}/{context}-{window}', people)
+
+
+if __name__ == "__main__":
+    # from tqdm import tqdm
+    test_train = 'train'
+    with open(env.tmp_data_path + '/{}/'.format(test_train) + FILE_NAME, 'rb') as f:
+        embed = pickle.load(f)
+    docs = load_files(env.learning_data_path, test_train)
+    people = list_people(docs)
+
+    # size can be obtained, by analysing get_statistics(embed)
+    # ex. Counter(get_statistics(embed))
+
+    # returns trimmed matrix (list of N vectors) according to size parameter
+    a = trim_emb_matrix(embed)
+    print(a[5])
+    # for context in ['single']:
+    #     for window in tqdm([5]):
+    #         to_save = prepare_vector(embed, context=context, window=window)
+    #         save_model(to_save, f'{env.out_path}/{context}-{window}', people)
