@@ -1,7 +1,9 @@
 .vscode/settings.json
 categorization/
 text_env/
+data-test/
 *.tsv
 *.pickle
 env.py
 __pycache__
+wordnet.py
