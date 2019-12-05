@@ -18,9 +18,9 @@ PATH = 'categorization/learningData'
 with open('stopwords.txt', encoding='utf-8') as f:
     STOPWORDS = f.read().splitlines()
 
-def load_files(path):
+def load_files(path, data_set):
     docs = []
-    files = glob.glob(path+'/**/*', recursive=True)
+    files = glob.glob(path+'/**/'+data_set+'/*', recursive=True)
     for file in files:
         try:
             with open(file, encoding='utf-8') as f:

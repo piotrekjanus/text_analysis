@@ -8,6 +8,7 @@ from sklearn.preprocessing import LabelEncoder
 from keras.callbacks import EarlyStopping
 from keras.utils import to_categorical
 from collections import Counter
+from sklearn.decomposition import PCA
 from sklearn.metrics import classification_report
 from read_embeddings import get_labels_and_embeddings, get_onet_train_test_data
 
@@ -40,17 +41,17 @@ def make_predictions(x, y, model):
     preds = model.predict(x)
     preds = preds.argmax(axis=1)
     y = y.argmax(axis=1)
-    a = encoder.inverse_transform(preds)
-    b = encoder.inverse_transform(y)
-    print(classification_report(b, a))
+    # a = encoder.inverse_transform(preds)
+    # b = encoder.inverse_transform(y)
+    print(classification_report(y, preds))
 
 def make_MLP(in_shape, out_shape):
     model = Sequential()
-    model.add(Dense(256, activation='relu', input_dim=in_shape))
+    model.add(Dense(228, activation='relu', input_dim=in_shape))
     model.add(Dropout(0.2))
     model.add(Dense(128, activation='relu'))
     model.add(Dropout(0.2))
-    model.add(Dense(64, activation='relu'))
+    model.add(Dense(32, activation='relu'))
     model.add(Dense(out_shape, activation='softmax'))
     return model
 
@@ -62,7 +63,7 @@ def load_data(file_name):
 
 def preprocess_data(data, labels):
     ind = np.where(labels == 'politycy')[0]
-    ind = np.random.choice(ind , int(ind.shape[0] * 0.85),replace=False)
+    ind = np.random.choice(ind , int(ind.shape[0] * 0.45),replace=False)
     data = np.delete(data, ind, axis=0)
     labels = np.delete(labels, ind, axis=0)
     encoder = LabelEncoder()
@@ -72,9 +73,10 @@ def preprocess_data(data, labels):
 
 
 def get_onet_data():
-    test, train = get_onet_train_test_data(3, 'corpus')
+    train, test = get_onet_train_test_data(5, 'corpus')
     test = get_labels_and_embeddings(test)
     train = get_labels_and_embeddings(train)
+    print(train['embeddings'].shape)
     encoder = LabelEncoder()
     train['labels'] = encoder.fit_transform(train['labels'])
     test['labels'] = encoder.transform(test['labels'])
@@ -84,12 +86,19 @@ def get_onet_data():
     return train['embeddings'], test['embeddings'], train['labels'], test['labels']
 
 if __name__ == "__main__":
-    
-    # data, labels = load_data('corpus-2')
-    # data, labels, encoder = preprocess_data(data, labels)
-    # x_train, x_test, y_train, y_test = split_dataset(data, labels)
+    # PCA attempt
+    data, labels = load_data('document-5')
+    data, labels, encoder = preprocess_data(data, labels)
+    x_train, x_test, y_train, y_test = split_dataset(data, labels)
 
     x_train, x_test, y_train, y_test = get_onet_data()
+    # print(x_train.shape)
+    n_comp=600
+    pca = PCA(n_components=n_comp)
+    principalComponents = pca.fit_transform(x_train)
+    print(np.cumsum(pca.explained_variance_ratio_))
+    x_train = pd.DataFrame(data = principalComponents, columns=['{}{}'.format('PC',i+1) for i in range(n_comp)])
+    x_test = pd.DataFrame(data = pca.transform(x_test) , columns=['{}{}'.format('PC',i+1) for i in range(n_comp)])
 
     ## make MLP
     model = make_MLP(x_train.shape[1], y_train.shape[1])
