@@ -120,7 +120,7 @@ def clear_sentence_and_locate_entities(sentence, stopwords=STOPWORDS):
 def embedding_creator(name, sentence):
     if name in ['bert', 'flair']:
         return WordEmbedder(name, sentence)
-    elif name == 'mse':
+    elif name == 'muse':
         return SentenceEmbedder(sentence)
     assert False, "unknown algorithm name" 
 
@@ -134,7 +134,7 @@ def get_embeddings_of_entity_in_corpus(documents, window_size = 5, method = 'ber
                 cleared_sentence, targets = clear_sentence_and_locate_entities(sentence)
                 if len(targets) == 0:
                     continue
-                embedder = embeddingCreator('muse', cleared_sentence)
+                embedder = embeddingCreator(method, cleared_sentence)
                 for target in targets:
                     
                     neighboring_embeddings = [
@@ -176,4 +176,4 @@ def read_files(corpus_dir, method, test = False):
 
 
 if __name__ == "__main__":
-    read_files(env.learning_data_path, 'bert')
+    read_files(env.learning_data_path, 'muse')

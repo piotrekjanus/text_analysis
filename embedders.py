@@ -39,7 +39,7 @@ class SentenceEmbedder:
 
     def get(self, start, stop):
         model_input = ''.join(self.sentence[start:stop])
-        return self.model([model_input])['outputs'].numpy()
+        return self.model([model_input])['outputs'].numpy()[0]
 
 
 if __name__ == '__main__':
