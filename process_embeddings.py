@@ -74,17 +74,8 @@ def prepare_vector(embed, context='single', window=5):
             for doc in docs:
                 ## For sent in doc
                 for sent in doc:
-                    if isinstance(sent, list):
-                        before = sent[0]
-                        after = sent[1]
-                        vec = before[:window] + after[:window]
-                        vec = [v.numpy() for v in vec]
-                        if len(vec)<2:
-                            vec = vec[0] if len(vec)==1 else vec
-                        else:
-                            vec = np.mean(vec, axis=0) 
-                    else:
-                        vec = sent.numpy() 
+                    
+                    vec = sent[0]
                     
                     if isinstance(vec, (np.ndarray, np.generic)):
                         person_vec.append((person, vec))

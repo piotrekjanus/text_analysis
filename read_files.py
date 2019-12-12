@@ -13,14 +13,12 @@ import env
 
 PATH = 'categorization/learningData'
 
-
-
 with open('stopwords.txt', encoding='utf-8') as f:
     STOPWORDS = f.read().splitlines()
 
-def load_files(path, data_set):
+def load_files(path):
     docs = []
-    files = glob.glob(path+'/**/'+data_set+'/*', recursive=True)
+    files = glob.glob(path+'/*', recursive=True)
     for file in files:
         try:
             with open(file, encoding='utf-8') as f:
@@ -126,35 +124,37 @@ def embedding_creator(name, sentence):
 
 def get_embeddings_of_entity_in_corpus(documents, window_size = 5, method = 'bert'):
     # Polish word embeddings
-    output = {}
+    output = []
 
+    good = 0
+
+    embedder = SentenceEmbedder()
     for document_id, document in enumerate(documents):
         for sentence in tqdm(document):
+
             try:
                 cleared_sentence, targets = clear_sentence_and_locate_entities(sentence)
+
                 if len(targets) == 0:
                     continue
-                embedder = embeddingCreator(method, cleared_sentence)
+               
                 for target in targets:
-                    
-                    neighboring_embeddings = [
-                        embedder.get(target['start'] - window_size, target['start']),
-                        embedder.get(target['start'] + target['length'], target['start'] + target['length'] + window_size)
-                    ]
+                    model_input = cleared_sentence[max(target['start'] - window_size, 0 ): target['start'] ]            
+                    neighboring_embeddings_1 = embedder.get(model_input)
+                    model_input = cleared_sentence[ target['start'] + target['length'] : target['start'] + target['length'] + window_size]
+                    neighboring_embeddings_2 = embedder.get(model_input)
+                    neighboring_embeddings = np.concatenate( (neighboring_embeddings_1, neighboring_embeddings_2) )
 
-                    if target['entity'] not in list(output.keys()):
-                        output[target['entity']] = {document_id: [neighboring_embeddings]}
-                    elif document_id not in output[target['entity']].keys():
-                        output[target['entity']][document_id] = [neighboring_embeddings]
-                    else:
-                        output[target['entity']][document_id].append(neighboring_embeddings)
-
-            except:
+                    output.append( [target['entity'], neighboring_embeddings] )
+                    good += 1
+            except Exception as e:
+                print(e)
                 print(f"failed to process: {sentence}")
+    print('good : ', good)
     return output
 
 def save_embeddings(embeddings):
-    with open(env.tmp_data_path + '/embeddings.pickle', 'wb+') as f:
+    with open(env.tmp_data_path + '/embeddings-muse-test-2.pickle', 'wb+') as f:
         pickle.dump(embeddings, f)
 
 
@@ -167,11 +167,10 @@ def read_files(corpus_dir, method, test = False):
 
     ## returns list of sentences in each document
     tokenizer = nltk.data.load('tokenizers/punkt/polish.pickle')
-    if test:
-        docs = docs[0:50]
     documents = [extract_sentences(document, tokenizer) for document in docs]
 
     embeddings = get_embeddings_of_entity_in_corpus(documents, 5, method)
+    # print(embeddings)
     save_embeddings(embeddings)
 
 

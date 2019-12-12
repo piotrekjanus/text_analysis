@@ -30,15 +30,14 @@ class WordEmbedder:
 
 class SentenceEmbedder:
 
-    def __init__(self, sentence):
+    def __init__(self):
         self.model = self.get_model()
-        self.sentence = sentence
     
     def get_model(self):
         return hub.load("https://tfhub.dev/google/universal-sentence-encoder-multilingual/2")
 
-    def get(self, start, stop):
-        model_input = ''.join(self.sentence[start:stop])
+    def get(self, sentence):
+        model_input = ''.join(sentence)
         return self.model([model_input])['outputs'].numpy()[0]
 
 

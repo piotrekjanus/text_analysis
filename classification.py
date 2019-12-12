@@ -11,6 +11,7 @@ from collections import Counter
 from sklearn.decomposition import PCA
 from sklearn.metrics import classification_report
 from read_embeddings import get_labels_and_embeddings, get_onet_train_test_data
+import env
 
 def recall_m(y_true, y_pred):
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
@@ -84,6 +85,15 @@ def get_onet_data():
     test['labels'] = to_categorical( test['labels'])
 
     return train['embeddings'], test['embeddings'], train['labels'], test['labels']
+
+
+def read_muse_vectors():
+    with open(env.tmp_data_path + '/embeddings-muse-train.pickle', 'rb+') as f:
+        df = pickle.load(embeddings, f)
+        
+
+
+    
 
 if __name__ == "__main__":
     # PCA attempt
