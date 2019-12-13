@@ -11,14 +11,17 @@ from tqdm import tqdm
 import numpy as np
 import pickle
 import env
+import pandas as pd
+
+from keras.models import load_model
 
 
 with open('stopwords.txt', encoding='utf-8') as f:
     STOPWORDS = f.read().splitlines()
 
-def load_files(path, data_set):
+def load_files(path):
     docs = []
-    files = glob.glob(path+'/**/'+data_set+'/*', recursive=True)
+    files = glob.glob(path+'/**/*', recursive=True)
     for file in files:
         try:
             with open(file, encoding='utf-8') as f:
@@ -126,10 +129,17 @@ def createEmbeddings(name):
     if name == 'flair':
         return FlairEmbeddings('polish-forward')
 
+def classify_embeddings(model, embeddings):
+    np.average(embeddings)
+
+    return model.predict([embeddings])[0]
+
 def get_embeddings_of_entity_in_corpus(documents, window_size = 5, method = 'bert'):
     # Polish word embeddings
-    output = {}
+    output = []
     embeddings = createEmbeddings(method)
+
+    pred_model = load_model('bigboy1.h5')
 
     for document_id, document in enumerate(documents):
         for sentence in tqdm(document):
@@ -139,18 +149,18 @@ def get_embeddings_of_entity_in_corpus(documents, window_size = 5, method = 'ber
                     continue
                 embeddings_of_tokens = get_embedding(' '.join(cleared_sentence), embeddings)
                 assert (len(embeddings_of_tokens) == len(cleared_sentence))
-                for target in targets:
-                    neighboring_embeddings = [embeddings_of_tokens[target['start'] - window_size: target['start']]] + \
-                                             [embeddings_of_tokens[target['start'] + target['length']: target['start'] + target['length'] + window_size]]
+                for i, target in enumerate(targets):
+                    neighboring_embeddings = embeddings_of_tokens[target['start'] - window_size: target['start']] + \
+                                             embeddings_of_tokens[target['start'] + target['length']: target['start'] + target['length'] + window_size]
+                    neighboring_embeddings = [ tensor.numpy() for tensor in neighboring_embeddings]
+                    pred_input = np.average(neighboring_embeddings, axis=0)
+                    pred_input = pred_input.reshape(1, -1)
+                    pred_output = pred_model.predict(pred_input)[0]
 
-                    if target['entity'] not in list(output.keys()):
-                        output[target['entity']] = {document_id: [neighboring_embeddings]}
-                    elif document_id not in output[target['entity']].keys():
-                        output[target['entity']][document_id] = [neighboring_embeddings]
-                    else:
-                        output[target['entity']][document_id].append(neighboring_embeddings)
+                    output.append((sentence, i, pred_output))
 
-            except:
+            except Exception as e:
+                print(e)
                 print(f"failed to process: {sentence}")
     return output
 
@@ -172,9 +182,10 @@ def read_files(corpus_dir, method, test = False):
         docs = docs[0:50]
     documents = [extract_sentences(document, tokenizer) for document in docs]
 
-    embeddings = get_embeddings_of_entity_in_corpus(documents, 5, method)
-    save_embeddings(embeddings)
+    output = get_embeddings_of_entity_in_corpus(documents, 5, method)
+    df = pd.DataFrame(output, columns=['sentence', 'target', 'prediction'])
+    df.to_csv('sentence-predictions.csv')
 
 
 if __name__ == "__main__":
-    read_files(env.learning_data_path, 'bert')
+    read_files(env.learning_data_path, 'flair')
